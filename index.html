@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="myApp">
+<head>
+	<meta charset="utf-8">
+	<!-- <base href="/project/firebase/todo/"> -->
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Blank Template</title>
+	<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<main class="container" ng-view>
+</main>
+<a href="#/dashboard">Click here</a>
+<!-- RESOURCE UTAMA -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.5.8/angular.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.5.8/angular-route.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/3.2.1/firebase.js"></script>
+<script src="https://cdn.firebase.com/libs/angularfire/2.0.1/angularfire.min.js"></script>
+
+<!-- RESOURCE TAMBAHAN -->
+<script type="text/javascript">
+var config = {
+	apiKey: "AIzaSyCjNn2OnWySRCd0BK-643lEmbNsiHxuG6c",
+	authDomain: "upload-2e3eb.firebaseapp.com",
+	databaseURL: "https://upload-2e3eb.firebaseio.com",
+	storageBucket: "upload-2e3eb.appspot.com",
+};
+firebase.initializeApp(config);
+var myApp = angular.module("myApp", ["ngRoute", "firebase"])
+	.constant("FIREBASE_URL", "https://upload-2e3eb.firebaseio.com/")
+	.config(function($routeProvider, $locationProvider){
+		$routeProvider
+			.when("/login", {
+				templateUrl: "blank_1-login.html",
+				controller: "LoginCtrl"
+			})
+			.when("/logout", {
+				templateUrl: "blank_1-login.html",
+				controller: "LoginCtrl",
+				resolve: {
+					"logout": ["signFactory", function(signFactory){
+						signFactory.logOut();
+					}]
+				}
+			})
+			.when("/dashboard", {
+				templateUrl: "blank_1-dashboard.html",
+				controller: "DashboardCtrl",
+				resolve: {
+					"currentAuth": ["signFactory", function(signFactory){
+						var auth = signFactory.onStat();
+						return auth.$requireSignIn();
+					}]
+				}
+			})
+			.otherwise({
+				redirectTo: "/logout"
+			});
+	})
+	.run(function($rootScope, $location){
+		$rootScope.$on("$routeChangeError", function(event, next, prev, error){
+			if(error = "AUTH_REQUIRED") $location.path("/login");
+		});
+	})
+	.factory("signFactory", function($firebaseAuth){
+		return new function() {
+			var authObj = $firebaseAuth();
+			this.login = function(email, password){
+				return authObj.$signInWithEmailAndPassword(email, password);
+			}
+			this.getStat = function(){
+				return authObj.$getAuth();
+			}
+			this.onStat = function(){
+				return authObj;
+			}
+			this.logOut = function(){
+				return authObj.$signOut();
+			}
+		}
+	})
+	.controller("LoginCtrl", function($scope, $location, signFactory){
+		$scope.login = function(){
+			var a = $scope.user;
+			if (a["email"] && a["password"]) {
+				var s = signFactory.login(a["email"], a["password"]);
+				s.then(function(sukses){
+					$location.path("/dashboard");
+				});
+				
+			}
+		}
+	})
+	.controller("DashboardCtrl", function($scope, $location, $firebaseAuth, $firebaseObject, signFactory){
+		var ref = firebase.database().ref().child("chats/-KO9c-fC-Vl-snfjciRk");
+		$scope.chats = $firebaseObject(ref);
+	});
+</script>
+</body>
+</html>
